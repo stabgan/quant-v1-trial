@@ -1,0 +1,28 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Define the NAV data model based on data_dictionary.json
+model NavData {
+  id          Int      @id @default(autoincrement())
+  date        DateTime @db.Date // Use Date type in Postgres for just the date part
+  nav         Float
+  scheme_code String // Use String, as description notes type might vary
+  scheme_name String
+  category    String
+
+  @@index([scheme_code, date]) // Index for common query patterns
+  @@index([date]) // Index for date-based queries
+}

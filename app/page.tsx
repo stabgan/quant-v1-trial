@@ -1,103 +1,150 @@
-import Image from "next/image";
+import { Suspense } from 'react';
+import { FundSelector } from "@/components/custom/fund-selector";
+import { DateRangeSlider } from "@/components/custom/date-range-slider";
+import { RollingWindowSlider } from "@/components/custom/rolling-window-slider";
+import { NavChart } from "@/components/custom/nav-chart";
+import { AnalyticsDisplay } from "@/components/custom/analytics-display";
+import { getDistinctFunds, getNavData } from "@/lib/actions";
+import { fundParser, dateParser, windowParser } from "@/lib/parsers";
+import type { FundInfo } from "@/lib/types";
+import { subYears, startOfDay } from 'date-fns';
+import { Skeleton } from "@/components/ui/skeleton";
+import type { NavPointWithRollingAvg, AnalyticsResult } from '@/lib/types';
 
-export default function Home() {
+// Define the search params structure expected by the page
+interface HomePageSearchParams {
+  fund?: string;
+  start?: string;
+  end?: string;
+  window?: string;
+}
+
+// Skeleton component for Suspense fallback
+function ChartAndAnalyticsSkeleton() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div>
+      <Skeleton className="h-24 w-full md:col-span-2 mb-6 bg-muted rounded-md" />
+      <Skeleton className="h-[400px] w-full bg-muted rounded-md" />
+    </div>
+  );
+}
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+// This is a Server Component - no 'use client'
+export default async function HomePage({ 
+  searchParams 
+}: { 
+  searchParams: HomePageSearchParams 
+}) {
+  // Fetch distinct funds directly on the server
+  const funds: FundInfo[] = await getDistinctFunds().catch(error => {
+      console.error("Error fetching funds for selector:", error);
+      return []; // Return empty array on error
+  });
+
+  const minDate = startOfDay(subYears(new Date(), 10));
+  const maxDate = startOfDay(new Date());
+  
+  // Create a safe copy of searchParams - properly awaiting them
+  const parsedParams = await searchParams;
+  
+  const parsedFundCode = typeof parsedParams?.fund === 'string' 
+    ? fundParser.parseServerSide(parsedParams.fund) 
+    : null;
+    
+  const parsedStartDate = typeof parsedParams?.start === 'string'
+    ? dateParser.parseServerSide(parsedParams.start)
+    : null;
+    
+  const parsedEndDate = typeof parsedParams?.end === 'string'
+    ? dateParser.parseServerSide(parsedParams.end)
+    : null;
+    
+  const parsedWindowDays = typeof parsedParams?.window === 'string'
+    ? windowParser.parseServerSide(parsedParams.window)
+    : null;
+
+  return (
+    <div className="container mx-auto bg-card rounded-lg shadow-sm my-8 p-6">
+      <h1
+        className="text-3xl font-semibold font-serif mb-6 pb-4 text-center text-primary border-b border-border"
+      >
+        Mutual Fund NAV Visualizer
+      </h1>
+
+      {/* Controls remain client components, reading/writing URL state */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 p-6 border border-border rounded-md">
+        <FundSelector funds={funds} className="md:col-span-1" />
+        <DateRangeSlider
+          minDate={minDate}
+          maxDate={maxDate}
+          className="md:col-span-2"
+        />
+        <RollingWindowSlider className="md:col-span-1" minDays={7} maxDays={180} />
+      </div>
+
+      {/* Use Suspense for the data loading part */}
+      <Suspense fallback={<ChartAndAnalyticsSkeleton />}>
+        <ChartAndAnalyticsLoader
+          fundCode={parsedFundCode}
+          startDate={parsedStartDate}
+          endDate={parsedEndDate}
+          windowDays={parsedWindowDays}
+        />
+      </Suspense>
+    </div>
+  );
+}
+
+// Server Component that loads data
+async function ChartAndAnalyticsLoader({
+  fundCode,
+  startDate,
+  endDate,
+  windowDays,
+}: {
+  fundCode: number | null;
+  startDate: Date | null;
+  endDate: Date | null;
+  windowDays: number | null;
+}) {
+  let chartData: NavPointWithRollingAvg[] = [];
+  let analytics: AnalyticsResult | null = null;
+  let error: string | null = null;
+  
+  // Only fetch data if a valid fund code is present
+  if (fundCode && startDate && endDate && windowDays) {
+    try {
+      // Call the server action directly
+      const result = await getNavData(fundCode, startDate, endDate, windowDays);
+      chartData = result.chartData;
+      analytics = result.analytics;
+    } catch (err) {
+      console.error("Error fetching data server-side:", err);
+      error = "Failed to load data."; // Set error state
+      chartData = []; // Ensure data is empty on error
+      analytics = null;
+    }
+  } else if (fundCode) {
+    // Handle case where fund is selected but dates/window might be missing/invalid initially
+    error = "Please ensure a valid date range and rolling window are selected.";
+  }
+
+  return (
+    <div>
+      <div className="mb-6">
+        <AnalyticsDisplay
+          analytics={analytics}
+          isLoading={false}
+          error={error}
+          className="md:col-span-2"
+        />
+      </div>
+      <NavChart
+        data={chartData}
+        isLoading={false}
+        error={error}
+        schemeCode={fundCode}
+      />
     </div>
   );
 }
