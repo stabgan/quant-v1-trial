@@ -22,7 +22,7 @@ interface NavChartProps {
   isLoading: boolean;
   error?: string | null;
   className?: string;
-  schemeCode?: string | null; // Ensure schemeCode is string to match container
+  schemeCode?: string | number | null;
 }
 
 // Custom Tooltip Formatter

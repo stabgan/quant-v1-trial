@@ -4,31 +4,29 @@ Interactive mutual fund NAV (Net Asset Value) visualizer with rolling averages a
 
 ## What It Does
 
-A full-stack web app that lets you explore historical mutual fund performance data. Select a fund, adjust the date range and rolling window, and instantly see NAV trends charted alongside a rolling average — plus a CAGR calculation for the selected period.
+A full-stack web app for exploring historical mutual fund performance. Select a fund, adjust the date range and rolling window, and instantly see NAV trends charted alongside a rolling average — plus CAGR for the selected period.
 
-Key features:
-
-- Fund selector dropdown populated from a PostgreSQL database
-- Interactive date range slider (up to 10 years of history)
+- Fund selector populated from PostgreSQL
+- Interactive date range slider (up to 10 years)
 - Configurable rolling average window (7–180 days)
-- CAGR (Compound Annual Growth Rate) analytics card
+- CAGR analytics card
 - Responsive line chart with custom tooltips
 - Ghibli-inspired warm color theme with texture overlay
 - URL-driven state via `nuqs` — shareable/bookmarkable views
 
-## Tech Stack
+## 🛠 Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 15 (App Router, Turbopack, Server Components) |
-| Language | TypeScript 5 |
-| Database | PostgreSQL via Prisma ORM 6 |
-| UI | Tailwind CSS 4, shadcn/ui (Radix primitives) |
-| Charts | Recharts 2 |
-| URL State | nuqs 2 |
-| Validation | Zod 3 |
-| Fonts | Lato + Merriweather (Google Fonts) |
-| Runtime | Bun (preferred) or Node.js |
+| ⚡ Framework | Next.js 15 (App Router, Turbopack, Server Components) |
+| 🔷 Language | TypeScript 5 |
+| 🗄️ Database | PostgreSQL via Prisma ORM 6 |
+| 🎨 UI | Tailwind CSS 4, shadcn/ui (Radix primitives) |
+| 📊 Charts | Recharts 2 |
+| 🔗 URL State | nuqs 2 |
+| ✅ Validation | Zod 3 |
+| 🔤 Fonts | Lato + Merriweather (Google Fonts) |
+| 🚀 Runtime | Bun (preferred) or Node.js 18+ |
 
 ## Prerequisites
 
@@ -46,10 +44,11 @@ cd quant-v1-trial
 bun install
 ```
 
-2. Set up the database — create a `.env` file:
+2. Set up the database — copy `.env.example` to `.env` and fill in your connection string:
 
-```
-DATABASE_URL="postgresql://user:password@localhost:5432/quant_db"
+```bash
+cp .env.example .env
+# Edit .env with your DATABASE_URL
 ```
 
 3. Run Prisma migrations:
@@ -76,19 +75,28 @@ App runs at [http://localhost:3566](http://localhost:3566).
 ## Project Structure
 
 ```
-app/            → Next.js App Router pages and layout
+app/              → Next.js App Router pages, layout, and global styles
+  generated/      → Prisma generated client (auto-generated, do not edit)
 components/
-  custom/       → Fund selector, date slider, chart, analytics display
-  ui/           → shadcn/ui primitives (card, select, slider, etc.)
+  custom/         → Fund selector, date slider, chart, analytics display
+  ui/             → shadcn/ui primitives (card, select, slider, etc.)
 lib/
-  actions.ts    → Server actions (data fetching)
+  actions.ts      → Server actions (data fetching)
   calculations.ts → Rolling average + CAGR math
-  db.ts         → Prisma client singleton
-  parsers.ts    → nuqs URL state parsers
-  types.ts      → Shared TypeScript interfaces
-prisma/         → Schema and migrations
-scripts/        → CSV import + DB test utilities
+  db.ts           → Prisma client singleton
+  parsers.ts      → nuqs URL state parsers
+  types.ts        → Shared TypeScript interfaces
+prisma/           → Schema and migrations
+scripts/          → CSV import + DB test utilities
 ```
+
+## Database Schema
+
+Three normalized tables:
+
+- **Category** — fund categories
+- **Fund** — scheme code, name, linked to category
+- **NavEntry** — daily NAV values, linked to fund (indexed by fund+date)
 
 ## Scripts
 
@@ -98,15 +106,14 @@ scripts/        → CSV import + DB test utilities
 | `bun run build` | Production build |
 | `bun run start` | Start production server |
 | `bun run lint` | ESLint |
+| `bun run scripts/import-data.ts` | Import NAV data from CSV |
+| `bun run scripts/test-database.ts` | Test database connectivity |
 
-## Known Issues
+## ⚠️ Known Issues
 
-- The CSV import script (`scripts/import-data.ts`) has a hardcoded relative path to the data file — you'll need to adjust it or place your CSV accordingly.
-- Dark mode CSS variables are commented out in `globals.css` — dark theme is defined but not active.
-- The `@prisma/client` is listed under `devDependencies` instead of `dependencies`, which will break production builds that don't install dev deps.
-- `bun.lock` is committed but `package-lock.json` is not — mixing package managers may cause issues for npm/yarn users.
-- No `.env.example` is provided, so the required `DATABASE_URL` variable isn't documented in the repo itself.
-- The `searchParams` prop in `app/page.tsx` is awaited (`await searchParams`) which is the Next.js 15 pattern, but the type annotation doesn't reflect it being a Promise.
+- The CSV import script has a hardcoded relative path to the data file — adjust it or place your CSV at `../nav_data/combined_nav_data_*.csv`.
+- Dark mode CSS variables are defined but commented out — dark theme is not active.
+- No automated tests beyond the unit tests in `lib/calculations.test.ts`.
 
 ## License
 

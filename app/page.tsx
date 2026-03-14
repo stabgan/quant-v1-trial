@@ -11,7 +11,7 @@ import { subYears, startOfDay } from 'date-fns';
 import { Skeleton } from "@/components/ui/skeleton";
 import type { NavPointWithRollingAvg, AnalyticsResult } from '@/lib/types';
 
-// Define the search params structure expected by the page
+// Next.js 15: searchParams is a Promise
 interface HomePageSearchParams {
   fund?: string;
   start?: string;
@@ -33,7 +33,7 @@ function ChartAndAnalyticsSkeleton() {
 export default async function HomePage({ 
   searchParams 
 }: { 
-  searchParams: HomePageSearchParams 
+  searchParams: Promise<HomePageSearchParams>
 }) {
   // Fetch distinct funds directly on the server
   const funds: FundInfo[] = await getDistinctFunds().catch(error => {
@@ -44,7 +44,7 @@ export default async function HomePage({
   const minDate = startOfDay(subYears(new Date(), 10));
   const maxDate = startOfDay(new Date());
   
-  // Create a safe copy of searchParams - properly awaiting them
+  // Next.js 15: searchParams is a Promise that must be awaited
   const parsedParams = await searchParams;
   
   const parsedFundCode = typeof parsedParams?.fund === 'string' 
@@ -102,7 +102,7 @@ async function ChartAndAnalyticsLoader({
   endDate,
   windowDays,
 }: {
-  fundCode: number | null;
+  fundCode: string | null;
   startDate: Date | null;
   endDate: Date | null;
   windowDays: number | null;
