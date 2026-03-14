@@ -1,3 +1,5 @@
+import { Prisma } from '../app/generated/prisma';
+
 // Originally from actions.ts
 export interface SchemeInfo {
   scheme_code: string;
@@ -6,7 +8,6 @@ export interface SchemeInfo {
 
 // Originally from actions.ts
 export interface FundInfo {
-  id?: number;
   scheme_code: string;
   scheme_name: string;
 }
