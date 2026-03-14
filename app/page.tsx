@@ -19,6 +19,8 @@ interface HomePageSearchParams {
   window?: string;
 }
 
+type SearchParamsPromise = Promise<HomePageSearchParams>;
+
 // Skeleton component for Suspense fallback
 function ChartAndAnalyticsSkeleton() {
   return (
@@ -33,7 +35,7 @@ function ChartAndAnalyticsSkeleton() {
 export default async function HomePage({ 
   searchParams 
 }: { 
-  searchParams: HomePageSearchParams 
+  searchParams: SearchParamsPromise 
 }) {
   // Fetch distinct funds directly on the server
   const funds: FundInfo[] = await getDistinctFunds().catch(error => {
@@ -44,22 +46,22 @@ export default async function HomePage({
   const minDate = startOfDay(subYears(new Date(), 10));
   const maxDate = startOfDay(new Date());
   
-  // Create a safe copy of searchParams - properly awaiting them
+  // Await the searchParams promise (Next.js 15 async searchParams)
   const parsedParams = await searchParams;
   
-  const parsedFundCode = typeof parsedParams?.fund === 'string' 
+  const parsedFundCode: string | null = typeof parsedParams?.fund === 'string' 
     ? fundParser.parseServerSide(parsedParams.fund) 
     : null;
     
-  const parsedStartDate = typeof parsedParams?.start === 'string'
+  const parsedStartDate: Date | null = typeof parsedParams?.start === 'string'
     ? dateParser.parseServerSide(parsedParams.start)
     : null;
     
-  const parsedEndDate = typeof parsedParams?.end === 'string'
+  const parsedEndDate: Date | null = typeof parsedParams?.end === 'string'
     ? dateParser.parseServerSide(parsedParams.end)
     : null;
     
-  const parsedWindowDays = typeof parsedParams?.window === 'string'
+  const parsedWindowDays: number | null = typeof parsedParams?.window === 'string'
     ? windowParser.parseServerSide(parsedParams.window)
     : null;
 
@@ -102,7 +104,7 @@ async function ChartAndAnalyticsLoader({
   endDate,
   windowDays,
 }: {
-  fundCode: number | null;
+  fundCode: string | null;
   startDate: Date | null;
   endDate: Date | null;
   windowDays: number | null;

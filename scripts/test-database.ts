@@ -5,7 +5,6 @@
 
 import { PrismaClient } from '../app/generated/prisma';
 
-// Create a new instance of PrismaClient
 const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
 });
@@ -13,33 +12,31 @@ const prisma = new PrismaClient({
 async function main() {
   try {
     console.log('Testing database connection...');
-    
-    // Check connection by counting records in NavData table
-    const navCount = await prisma.navData.count();
-    console.log(`🟢 Database connection successful! Found ${navCount} NAV data records.`);
-    
+
+    // Check connection by counting records in NavEntry table
+    const navCount = await prisma.navEntry.count();
+    console.log(`🟢 Database connection successful! Found ${navCount} NavEntry records.`);
+
     // Get sample of data
     if (navCount > 0) {
       console.log('Fetching sample data...');
-      const sampleData = await prisma.navData.findMany({
+      const sampleData = await prisma.navEntry.findMany({
         take: 3,
         orderBy: { date: 'desc' },
+        include: { fund: true },
       });
-      
+
       console.log('Sample data:');
       console.table(sampleData.map(item => ({
         date: item.date.toISOString().split('T')[0],
-        scheme_code: item.scheme_code,
-        scheme_name: item.scheme_name,
+        scheme_code: item.fund.scheme_code,
+        scheme_name: item.fund.scheme_name,
         nav: item.nav,
       })));
-      
-      // Get distinct schemes
-      const schemeCount = await prisma.$queryRaw`
-        SELECT COUNT(DISTINCT scheme_code) as count FROM "NavData"
-      `;
-      
-      console.log(`Database contains ${schemeCount[0].count} distinct scheme codes.`);
+
+      // Get distinct fund count
+      const fundCount = await prisma.fund.count();
+      console.log(`Database contains ${fundCount} distinct funds.`);
     }
   } catch (error) {
     console.error('❌ Database connection failed:');
@@ -50,10 +47,9 @@ async function main() {
   }
 }
 
-// Run the main function
 main()
   .then(() => console.log('Database test complete'))
   .catch((e) => {
     console.error('Script failed with error:', e);
     process.exit(1);
-  }); 
+  });

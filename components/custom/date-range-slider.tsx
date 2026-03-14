@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useQueryState } from 'nuqs';
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { dateParser } from '@/lib/parsers'; // Import the parser
-import { format, parseISO, isValid, startOfMonth, endOfMonth, subYears } from 'date-fns';
+import { format, isValid, startOfMonth, endOfMonth, subYears } from 'date-fns';
 import { cn } from "@/lib/utils";
 
 interface DateRangeSliderProps {
@@ -85,7 +85,6 @@ export function DateRangeSlider({ minDate, maxDate, className }: DateRangeSlider
           "[&>span:nth-child(2)>span]:bg-primary", // Range fill using primary
           "[&>span:last-child>span]:bg-primary", // Thumb using primary
           "[&>span:last-child>span]:border-primary-foreground/50", // Thumb border
-          className
         )}
       />
       <div className="flex justify-between text-sm text-muted-foreground">
